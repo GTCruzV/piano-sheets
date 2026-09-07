@@ -5,7 +5,7 @@ a = Analysis(
     ['piano_autoplayer.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('web', 'web')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

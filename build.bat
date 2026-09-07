@@ -8,9 +8,11 @@ py -m pip install --upgrade pip
 py -m pip install -r requirements.txt
 
 echo.
-echo Compilando el .exe (incluye la carpeta "web" y todo lo que
-echo necesita Python, tus companeros NO necesitan instalar nada)...
+echo Compilando el .exe (incluye la carpeta "web" y el icono,
+echo y todo lo que necesita Python; tus companeros NO necesitan
+echo instalar nada)...
 py -m PyInstaller --onefile --noconsole --name "PianoAutoplayer" ^
+    --icon "assets\icon.ico" ^
     --add-data "web;web" ^
     piano_autoplayer.py
 

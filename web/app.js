@@ -126,6 +126,27 @@ loadBtn.addEventListener('click', () => {
   });
 });
 
+const newSheetName = document.getElementById('newSheetName');
+const saveSheetBtn = document.getElementById('saveSheetBtn');
+const importBtn = document.getElementById('importBtn');
+
+saveSheetBtn.addEventListener('click', () => {
+  const name = newSheetName.value.trim();
+  if (!name) {
+    setStatus('Ponle un nombre a la partitura antes de guardar.');
+    return;
+  }
+  callApi('save_sheet', name, songText.value).then((res) => {
+    if (res && res.ok) {
+      newSheetName.value = '';
+    }
+  });
+});
+
+importBtn.addEventListener('click', () => {
+  callApi('import_files');
+});
+
 startBtn.addEventListener('click', () => {
   callApi('start', startDelay.value, interval.value, songText.value);
 });

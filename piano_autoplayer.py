@@ -24,6 +24,7 @@ CARPETA "partituras":
 
 import json
 import os
+import shutil
 import sys
 import threading
 import time
@@ -40,8 +41,8 @@ except ImportError:
 # Repo público donde vas a ir subiendo los archivos .txt de partituras,
 # dentro de una carpeta llamada "partituras". Ejemplo: si tu repo es
 # https://github.com/Tirji/piano-sheets, entonces:
-GITHUB_OWNER = "TU_USUARIO_DE_GITHUB"
-GITHUB_REPO = "TU_REPOSITORIO"
+GITHUB_OWNER = "GTCruzV"
+GITHUB_REPO = "piano-sheets"
 GITHUB_BRANCH = "main"
 GITHUB_PATH = "partituras"
 SYNC_INTERVAL_SECONDS = 90
@@ -255,6 +256,68 @@ class Api:
 
     def get_song_text(self):
         return ""
+
+    @staticmethod
+    def _sanitize_filename(name):
+        name = (name or "").strip()
+        for ch in '<>:"/\\|?*':
+            name = name.replace(ch, "")
+        return name
+
+    def save_sheet(self, name, content):
+        """Guarda el texto de la partitura actual como un .txt nuevo
+        dentro de la carpeta 'partituras', con el nombre que puso el
+        usuario en la interfaz."""
+        safe = self._sanitize_filename(name)
+        if not safe:
+            self.notifier.set_status("Ponle un nombre a la partitura antes de guardar.")
+            return {"ok": False}
+        if not safe.lower().endswith(".txt"):
+            safe += ".txt"
+        path = os.path.join(SHEETS_DIR, safe)
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(content or "")
+        except Exception as e:
+            self.notifier.set_status(f"No se pudo guardar la partitura: {e}")
+            return {"ok": False}
+        self.notifier.refresh()
+        self.notifier.toast(f"Guardada: {safe}")
+        self.notifier.set_status(f"Partitura guardada como {safe}")
+        return {"ok": True, "name": safe}
+
+    def import_files(self):
+        """Abre el explorador de Windows para elegir uno o varios .txt
+        y los copia a la carpeta 'partituras' con su nombre original."""
+        if self.window is None:
+            return []
+        try:
+            paths = self.window.create_file_dialog(
+                webview.FileDialog.OPEN,
+                allow_multiple=True,
+                file_types=("Archivos de texto (*.txt)", "Todos los archivos (*.*)"),
+            )
+        except Exception as e:
+            self.notifier.set_status(f"No se pudo abrir el explorador: {e}")
+            return []
+        if not paths:
+            return []
+        imported = []
+        for p in paths:
+            try:
+                base = self._sanitize_filename(os.path.basename(p))
+                if not base.lower().endswith(".txt"):
+                    base += ".txt"
+                dest = os.path.join(SHEETS_DIR, base)
+                shutil.copyfile(p, dest)
+                imported.append(base)
+            except Exception:
+                pass
+        if imported:
+            self.notifier.refresh()
+            self.notifier.toast("Importada(s): " + ", ".join(imported))
+            self.notifier.set_status(f"{len(imported)} archivo(s) importado(s).")
+        return imported
 
     # -------- reproducción --------
     def start(self, delay, interval_ms, song_text):
