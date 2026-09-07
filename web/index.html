@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Piano Autoplayer</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="blobs">
+    <span class="blob b1"></span>
+    <span class="blob b2"></span>
+    <span class="blob b3"></span>
+  </div>
+  <canvas id="bg"></canvas>
+  <div class="grain"></div>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-icon">🎹</span>
+        <div>
+          <h1>Piano Autoplayer<span class="caret">|</span></h1>
+          <span class="brand-sub">Tirji</span>
+        </div>
+      </div>
+      <div class="sync-pill" id="syncPill">
+        <span class="dot" id="syncDot"></span>
+        <span id="syncText">Sincronizando…</span>
+      </div>
+    </header>
+
+    <div class="keys-strip" id="keysStrip"></div>
+
+    <section class="panel">
+      <div class="field">
+        <label>Tiempo de inicio (s)</label>
+        <input id="startDelay" type="text" value="3">
+      </div>
+      <div class="field">
+        <label>Intervalo entre notas (ms)</label>
+        <input id="interval" type="text" value="300">
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <label>Partituras guardadas</label>
+        <button class="ghost-btn" id="refreshBtn">
+          <span class="icon spin-on-click">↻</span> Actualizar
+        </button>
+      </div>
+      <div class="row">
+        <select id="sheetSelect"></select>
+        <button class="accent-btn" id="loadBtn">Cargar</button>
+      </div>
+    </section>
+
+    <section class="panel grow">
+      <div class="panel-head">
+        <label>Partitura</label>
+        <div class="np-wrap">
+          <span class="eq" id="eq"><i></i><i></i><i></i><i></i></span>
+          <span class="now-playing" id="nowPlaying"></span>
+        </div>
+      </div>
+      <textarea id="songText" spellcheck="false">q w e r t y u</textarea>
+    </section>
+
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+
+    <section class="controls">
+      <button class="big-btn play" id="startBtn">
+        <span class="big-icon">▶</span>
+        <span>Iniciar <kbd>F8</kbd></span>
+      </button>
+      <button class="big-btn stop" id="stopBtn">
+        <span class="big-icon">■</span>
+        <span>Detener <kbd>F9 / Esc</kbd></span>
+      </button>
+    </section>
+
+    <footer class="status" id="statusText">Listo.</footer>
+  </div>
+
+  <div class="toast-stack" id="toastStack"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
