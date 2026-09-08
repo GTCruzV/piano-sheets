@@ -6,7 +6,7 @@
 <link rel="icon" href="icon.png">
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="auth-checking">
   <div class="blobs">
     <span class="blob b1"></span>
     <span class="blob b2"></span>
@@ -15,7 +15,36 @@
   <canvas id="bg"></canvas>
   <div class="grain"></div>
 
-  <div class="app">
+  <div class="boot-loading" id="bootLoading">
+    <span class="brand-icon">🎹</span>
+    <span>Cargando…</span>
+  </div>
+
+  <div class="auth-gate" id="authGate">
+    <div class="auth-card">
+      <div class="auth-head">
+        <span class="brand-icon">🎹</span>
+        <h1>Piano Autoplayer</h1>
+      </div>
+      <p class="auth-sub">Necesitas una cuenta para usar el programa. Inicia sesión o crea una cuenta nueva.</p>
+
+      <div class="row" style="margin-bottom:8px">
+        <input id="gateUser" type="text" placeholder="usuario" style="width:150px">
+        <input id="gatePass" type="password" placeholder="contraseña" style="width:150px">
+      </div>
+      <div class="row" style="margin-bottom:8px">
+        <button class="ghost-btn" id="gatePickPhotoBtn">🖼️ Foto de perfil</button>
+        <span class="now-playing" id="gatePhotoName" style="min-height:auto"></span>
+      </div>
+      <div class="row">
+        <button class="accent-btn" id="gateLoginBtn">Entrar</button>
+        <button class="ghost-btn" id="gateRegisterBtn">Crear cuenta</button>
+      </div>
+      <div class="gate-error" id="gateError"></div>
+    </div>
+  </div>
+
+  <div class="app" id="mainApp">
     <header class="topbar">
       <div class="brand">
         <span class="brand-icon">🎹</span>
@@ -32,68 +61,316 @@
 
     <div class="keys-strip" id="keysStrip"></div>
 
-    <section class="panel">
-      <div class="field">
-        <label>Tiempo de inicio (s)</label>
-        <input id="startDelay" type="text" value="3">
-      </div>
-      <div class="field">
-        <label>Intervalo entre notas (ms)</label>
-        <input id="interval" type="text" value="300">
-      </div>
-    </section>
+    <nav class="tabs">
+      <button class="tab-btn active" id="tabPiano" data-tab="piano">🎹 Piano</button>
+      <button class="tab-btn" id="tabEditor" data-tab="editor">⌨️ Editar teclado</button>
+      <button class="tab-btn" id="tabTienda" data-tab="tienda">🛒 Tienda</button>
+      <button class="tab-btn hidden" id="tabSupervision" data-tab="supervision">🛡️ Supervisión</button>
+    </nav>
 
-    <section class="panel">
-      <div class="panel-head">
-        <label>Partituras guardadas</label>
-        <button class="ghost-btn" id="refreshBtn">
-          <span class="icon spin-on-click">↻</span> Actualizar
-        </button>
-      </div>
-      <div class="row">
-        <select id="sheetSelect"></select>
-        <button class="accent-btn" id="loadBtn">Cargar</button>
-      </div>
-    </section>
-
-    <section class="panel">
-      <div class="panel-head">
-        <label>Guardar tu partitura</label>
-      </div>
-      <div class="row">
-        <input id="newSheetName" type="text" placeholder="nombre de la partitura" style="width:200px">
-        <button class="accent-btn" id="saveSheetBtn">💾 Guardar</button>
-        <button class="ghost-btn" id="importBtn">📁 Importar .txt</button>
-      </div>
-    </section>
-
-    <section class="panel grow">
-      <div class="panel-head">
-        <label>Partitura</label>
-        <div class="np-wrap">
-          <span class="eq" id="eq"><i></i><i></i><i></i><i></i></span>
-          <span class="now-playing" id="nowPlaying"></span>
+    <div id="viewPiano" class="view">
+      <section class="panel">
+        <div class="field">
+          <label>Tiempo de inicio (s)</label>
+          <input id="startDelay" type="text" value="3">
         </div>
-      </div>
-      <textarea id="songText" spellcheck="false">q w e r t y u</textarea>
-    </section>
+        <div class="field">
+          <label>Intervalo entre notas (ms)</label>
+          <input id="interval" type="text" value="300">
+        </div>
+      </section>
 
-    <div class="progress-wrap">
-      <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+      <section class="panel">
+        <div class="panel-head">
+          <label>Partituras guardadas</label>
+          <button class="ghost-btn" id="refreshBtn">
+            <span class="icon spin-on-click">↻</span> Actualizar
+          </button>
+        </div>
+        <div class="row">
+          <select id="sheetSelect"></select>
+          <button class="accent-btn" id="loadBtn">Cargar</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <label>Guardar tu partitura</label>
+        </div>
+        <div class="row">
+          <input id="newSheetName" type="text" placeholder="nombre de la partitura" style="width:200px">
+          <button class="accent-btn" id="saveSheetBtn">💾 Guardar</button>
+          <button class="ghost-btn" id="importBtn">📁 Importar .txt</button>
+        </div>
+      </section>
+
+      <section class="panel grow">
+        <div class="panel-head">
+          <label>Partitura</label>
+          <div class="np-wrap">
+            <span class="eq" id="eq"><i></i><i></i><i></i><i></i></span>
+            <span class="now-playing" id="nowPlaying"></span>
+          </div>
+        </div>
+        <textarea id="songText" spellcheck="false">q w e r t y u</textarea>
+      </section>
+
+      <div class="progress-wrap">
+        <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+      </div>
+
+      <section class="controls">
+        <button class="big-btn play" id="startBtn">
+          <span class="big-icon">▶</span>
+          <span>Iniciar <kbd>F8</kbd></span>
+        </button>
+        <button class="big-btn stop" id="stopBtn">
+          <span class="big-icon">■</span>
+          <span>Detener <kbd>F9 / Esc</kbd></span>
+        </button>
+      </section>
     </div>
 
-    <section class="controls">
-      <button class="big-btn play" id="startBtn">
-        <span class="big-icon">▶</span>
-        <span>Iniciar <kbd>F8</kbd></span>
-      </button>
-      <button class="big-btn stop" id="stopBtn">
-        <span class="big-icon">■</span>
-        <span>Detener <kbd>F9 / Esc</kbd></span>
-      </button>
-    </section>
+    <div id="viewEditor" class="view hidden">
+      <section class="panel">
+        <div class="panel-head">
+          <label>⌨️ Editor de teclado (controlador)</label>
+          <button class="ghost-btn" id="ctrlTutorialBtn">📘 Tutorial</button>
+        </div>
+        <p class="auth-hint">
+          Esto NO es una partitura: aquí defines cómo se comportan las
+          teclas (mantenerlas, tocarlas, combinarlas). Pica "Tutorial"
+          para ver todos los símbolos con ejemplos.
+        </p>
+      </section>
+
+      <section class="panel">
+        <div class="field">
+          <label>Tiempo de inicio (s)</label>
+          <input id="ctrlStartDelay" type="text" value="3">
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <label>Controladores guardados</label>
+          <button class="ghost-btn" id="ctrlRefreshBtn">
+            <span class="icon spin-on-click">↻</span> Actualizar
+          </button>
+        </div>
+        <div class="row">
+          <select id="ctrlSheetSelect"></select>
+          <button class="accent-btn" id="ctrlLoadBtn">Cargar</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <label>Guardar tu controlador</label>
+        </div>
+        <div class="row">
+          <input id="ctrlNewSheetName" type="text" placeholder="nombre del controlador" style="width:200px">
+          <button class="accent-btn" id="ctrlSaveBtn">💾 Guardar</button>
+          <button class="ghost-btn" id="ctrlImportBtn">📁 Importar .txt</button>
+        </div>
+      </section>
+
+      <section class="panel grow">
+        <div class="panel-head">
+          <label>Script del controlador</label>
+          <div class="np-wrap">
+            <span class="eq" id="ctrlEq"><i></i><i></i><i></i><i></i></span>
+            <span class="now-playing" id="ctrlNow"></span>
+          </div>
+        </div>
+        <textarea id="ctrlScriptText" spellcheck="false" placeholder="w[12.2]&#10;[wasd][12]&#10;[shift+w][5][T]&#10;espera[2]">w[12.2]
+espera[1]
+[wasd][12]
+[shift+w][5][T]</textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="ghost-btn" id="ctrlValidateBtn">✅ Validar / Vista previa</button>
+          <span class="now-playing" id="ctrlValidateResult" style="min-height:auto"></span>
+        </div>
+      </section>
+
+      <div class="progress-wrap">
+        <div class="progress-bar" id="ctrlProgressBar"><div class="progress-fill" id="ctrlProgressFill"></div></div>
+      </div>
+
+      <section class="controls">
+        <button class="big-btn play" id="ctrlStartBtn">
+          <span class="big-icon">▶</span>
+          <span>Iniciar <kbd>F10</kbd></span>
+        </button>
+        <button class="big-btn stop" id="ctrlStopBtn">
+          <span class="big-icon">■</span>
+          <span>Detener <kbd>F11 / Esc</kbd></span>
+        </button>
+      </section>
+    </div>
+
+    <div id="viewTienda" class="view hidden">
+      <section class="panel" id="tiendaAuthPanel">
+        <div id="tiendaLoggedOut" class="hidden">
+          <label>Sesión</label>
+          <p class="auth-hint">Inicia sesión desde la pantalla de entrada para usar la Tienda.</p>
+        </div>
+        <div id="tiendaLoggedIn" class="hidden">
+          <div class="row" style="justify-content:space-between">
+            <div class="row">
+              <img id="tMyPhoto" class="avatar" src="" alt="">
+              <span id="tMyUsername" style="font-weight:700"></span>
+            </div>
+            <button class="ghost-btn" id="tLogoutBtn">Cerrar sesión</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="my-post-status hidden" id="myPostStatus"></div>
+
+      <div class="kind-toggle" id="tiendaKindToggle">
+        <button class="kind-btn active" id="tiendaKindSheetBtn" data-kind="sheet">🎹 Partituras</button>
+        <button class="kind-btn" id="tiendaKindCtrlBtn" data-kind="controller">⌨️ Controladores</button>
+      </div>
+
+      <section class="panel grow feed-panel" id="feedPanel" style="overflow-y:auto">
+        <div class="panel-head">
+          <label id="feedPanelTitle">🛒 Tienda · Partituras</label>
+          <button class="ghost-btn" id="tRefreshBtn"><span class="icon">↻</span> Actualizar</button>
+        </div>
+        <div class="feed-search-wrap">
+          <span class="search-icon">🔎</span>
+          <input id="tiendaSearch" type="text" placeholder="Buscar canción, usuario o foto...">
+        </div>
+        <div id="tiendaList" class="feed-list"></div>
+      </section>
+
+      <section class="panel grow feed-panel hidden" id="profilePanel" style="overflow-y:auto">
+        <div class="profile-head">
+          <button class="ghost-btn profile-back-btn" id="profileBackBtn">← Volver</button>
+          <img id="profileAvatar" class="avatar" src="" alt="">
+          <div class="profile-head-info">
+            <div class="profile-username" id="profileUsername"></div>
+            <div class="profile-count" id="profileCount"></div>
+          </div>
+        </div>
+        <div class="feed-search-wrap">
+          <span class="search-icon">🔎</span>
+          <input id="profileSearch" type="text" placeholder="Buscar en sus publicaciones...">
+        </div>
+        <div id="profileList" class="feed-list"></div>
+      </section>
+
+      <button class="fab-btn hidden" id="newPostFab" title="Publicar en la tienda">＋</button>
+    </div>
+
+    <div id="viewSupervision" class="view hidden">
+      <div class="kind-toggle" id="pendingKindToggle">
+        <button class="kind-btn active" id="pendingKindSheetBtn" data-kind="sheet">🎹 Partituras</button>
+        <button class="kind-btn" id="pendingKindCtrlBtn" data-kind="controller">⌨️ Controladores</button>
+      </div>
+      <section class="panel admin-panel" id="adminPendingPanel">
+        <div class="panel-head">
+          <label>🔔 Solicitudes pendientes</label>
+          <button class="ghost-btn" id="pendingRefreshBtn"><span class="icon">↻</span></button>
+        </div>
+        <div class="feed-search-wrap">
+          <span class="search-icon">🔎</span>
+          <input id="pendingSearch" type="text" placeholder="Buscar publicación o usuario...">
+        </div>
+        <div id="pendingList" class="pending-list"></div>
+      </section>
+
+      <section class="panel grow feed-panel" id="usersPanel" style="overflow-y:auto">
+        <div class="panel-head">
+          <label>👥 Usuarios</label>
+          <button class="ghost-btn" id="usersRefreshBtn"><span class="icon">↻</span> Actualizar</button>
+        </div>
+        <div class="feed-search-wrap">
+          <span class="search-icon">🔎</span>
+          <input id="usersSearch" type="text" placeholder="Buscar usuario...">
+        </div>
+        <div id="usersList" class="pending-list compact-list"></div>
+      </section>
+    </div>
 
     <footer class="status" id="statusText">Listo.</footer>
+  </div>
+
+  <div class="modal-overlay hidden" id="postModalOverlay">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="postModalTitle">🎹 Nueva publicación</h2>
+        <button class="modal-close" id="postModalClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <button class="ghost-btn" id="postSourceFileBtn">📁 Usar un archivo .txt</button>
+          <span class="now-playing" id="postSourceFileName" style="min-height:auto"></span>
+        </div>
+        <div class="field" style="width:100%; margin-right:0">
+          <label>Nombre de la publicación</label>
+          <input id="postName" type="text" placeholder="nombre" style="width:100%">
+        </div>
+        <div class="field" style="width:100%; margin-right:0">
+          <label id="postContentLabel">Tu partitura</label>
+          <textarea id="postContentText" spellcheck="false" placeholder="Escribe o pega aquí tu partitura/proyecto..." style="min-height:130px"></textarea>
+        </div>
+        <div class="row">
+          <button class="ghost-btn" id="postPickPhotoBtn">🖼️ Foto de referencia</button>
+          <span class="now-playing" id="postPhotoName" style="min-height:auto"></span>
+        </div>
+        <div class="gate-error" id="postModalError"></div>
+        <button class="accent-btn" id="postSubmitBtn" style="width:100%">📤 Publicar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay hidden" id="ctrlTutorialOverlay">
+    <div class="modal tutorial-modal">
+      <div class="modal-head">
+        <h2>📘 Tutorial del Editor de teclado</h2>
+        <button class="modal-close" id="ctrlTutorialClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="auth-hint">
+          Un controlador es una lista de instrucciones, una tras otra.
+          Cada instrucción dice qué tecla(s) tocar, cuánto tiempo, y
+          cómo (mantenida o a toques). No hace falta que la partitura
+          tenga sentido musical: esto sirve para automatizar CUALQUIER
+          combinación de teclas.
+        </p>
+        <table class="tutorial-table">
+          <thead><tr><th>Escribes</th><th>Qué hace</th></tr></thead>
+          <tbody>
+            <tr><td><code>w[12.2]</code></td><td>Mantiene la tecla <b>W</b> presionada 12.2 segundos.</td></tr>
+            <tr><td><code>w[12.3][T]</code></td><td>En vez de mantenerla, <b>toca</b> W repetidamente durante 12.3s.</td></tr>
+            <tr><td><code>w[1][T150]</code></td><td>Igual que <code>[T]</code>, pero cada toque cada 150ms (por defecto son ~120ms).</td></tr>
+            <tr><td><code>[wasd][12]</code></td><td><b>Combina</b> teclas: mantiene W+A+S+D juntas 12 segundos.</td></tr>
+            <tr><td><code>[shift+w][5]</code></td><td>Mantiene <b>Shift + W</b> juntas 5 segundos (usa <code>+</code> para juntar teclas especiales como shift, ctrl, alt, espacio, enter, flechas, etc.).</td></tr>
+            <tr><td><code>[ctrl+alt+t][2][T]</code></td><td>Toca (a toques) la combinación Ctrl+Alt+T durante 2 segundos.</td></tr>
+            <tr><td><code>espera[3]</code></td><td>No toca nada: solo <b>espera</b> 3 segundos antes de seguir con lo siguiente.</td></tr>
+            <tr><td><code>w[1]x5</code></td><td><b>Repite</b> esa instrucción 5 veces seguidas (aquí: mantener W 1s, 5 veces).</td></tr>
+            <tr><td><code># nota</code></td><td>Comentario: esa línea se ignora, sirve para dejarte notas.</td></tr>
+          </tbody>
+        </table>
+        <p class="auth-hint">
+          Teclas especiales que reconoce (van siempre entre corchetes,
+          solas o combinadas con <code>+</code>): <code>espacio</code>,
+          <code>enter</code>, <code>tab</code>, <code>esc</code>,
+          <code>arriba</code>/<code>abajo</code>/<code>izquierda</code>/<code>derecha</code>,
+          <code>shift</code>, <code>ctrl</code>, <code>alt</code>, y
+          teclas de función como <code>f1</code>, <code>f2</code>, etc.
+        </p>
+        <p class="auth-hint">
+          Puedes escribir varias instrucciones seguidas, separadas por
+          espacios o saltos de línea; se ejecutan una tras otra, en
+          orden. Usa el botón "Validar / Vista previa" para revisar tu
+          controlador antes de darle Iniciar o de publicarlo en la
+          Tienda.
+        </p>
+      </div>
+    </div>
   </div>
 
   <div class="toast-stack" id="toastStack"></div>
