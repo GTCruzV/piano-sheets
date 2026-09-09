@@ -1,18 +1,13 @@
 """
 Piano Autoplayer - Tirji
 --------------------------------------------------
-Simula pulsaciones de teclado automáticamente, como si tocaras un
-piano/teclado de letras (ej. en Roblox). Interfaz en HTML/CSS/JS
-(pywebview) con animaciones; el envío de teclas sigue siendo 100%
-Python/nativo (funciona aunque la ventana del juego tenga el foco).
+Simula pulsaciones de teclado automáticamente, como si
+estuvieras tocando un piano/teclado de letras (ej. en Roblox).
 
-FORMATO DE PARTITURA (compatible con virtualpiano.net / virtualpianosheet.com):
-- No hace falta poner espacios: cada carácter suelto es una nota,
-  y [abc] es un acorde (varias teclas juntas).
-- MAYÚSCULA = tecla negra -> se envía shift + esa tecla.
-- "-" o "|" = silencio.
-- {ms} = a partir de aquí cambia la velocidad.
+Requisitos (instalar una vez):
+    pip install keyboard
 
+<<<<<<< HEAD
 CARPETA "partituras":
 - Se crea junto al programa. Cualquier .txt ahí aparece en la lista.
 - Además, el programa se sincroniza solo con un repositorio de GitHub
@@ -51,17 +46,44 @@ if sys.stdout is None:
     sys.stdout = open(os.devnull, "w")
 if sys.stderr is None:
     sys.stderr = open(os.devnull, "w")
+=======
+IMPORTANTE:
+- En Windows normalmente hay que ejecutar como Administrador
+  para que "keyboard" pueda enviar teclas a otras ventanas (ej. Roblox).
+- Antes de iniciar, deja el cursor sobre la ventana del juego
+  (Roblox), el programa te da unos segundos de cuenta regresiva
+  para que cambies de ventana.
+
+FORMATO DE LA PARTITURA:
+- Escribe las teclas separadas por espacios. Cada espacio = un
+  "momento" en el tiempo, separado por el intervalo configurado.
+- Si en un mismo momento quieres tocar varias teclas a la vez
+  (un acorde), escríbelas juntas sin espacio. Ejemplo:
+
+      q w e asd f
+
+  Aquí se toca: q, luego w, luego e, luego (a+s+d juntas), luego f.
+
+- Puedes usar "-" como un "silencio" (no se toca nada, solo espera).
+- Puedes cambiar el tiempo de espera de una nota puntual poniendo
+  un número entre corchetes justo después del token, en milisegundos.
+  Ejemplo:  q[800] w  -> después de tocar "q" espera 800ms en vez del
+  intervalo por defecto, luego toca "w".
+"""
+
+import tkinter as tk
+from tkinter import ttk, messagebox
+>>>>>>> 884cf30cbdfd6cbceea211ec326c78b58acd0031
 import threading
 import time
-
-import requests
-import webview
+import re
 
 try:
     import keyboard
 except ImportError:
     raise SystemExit("Falta la librería 'keyboard'. Instálala con: pip install keyboard")
 
+<<<<<<< HEAD
 # ================== CONFIGURA TU REPO DE GITHUB AQUÍ ==================
 # Repo público donde vas a ir subiendo los archivos .txt de partituras,
 # dentro de una carpeta llamada "partituras". Ejemplo: si tu repo es
@@ -117,44 +139,19 @@ def _load_or_create_device_id():
 
 
 DEVICE_ID = _load_or_create_device_id()
+=======
+
+TOKEN_RE = re.compile(r"^([^\[\]]*)(?:\[(\d+)\])?$")
+>>>>>>> 884cf30cbdfd6cbceea211ec326c78b58acd0031
 
 
-def _tokenize(text):
-    """Convierte la partitura completa en una lista de eventos, sin
-    depender de espacios. Cada evento es (valor, inicio, fin)."""
-    events = []
-    i, n = 0, len(text)
-    while i < n:
-        ch = text[i]
-        if ch.isspace():
-            i += 1
-        elif ch == "[":
-            start = i
-            j = text.find("]", i + 1)
-            if j == -1:
-                events.append((text[i + 1:], start, n))
-                i = n
-            else:
-                events.append((text[i + 1:j], start, j + 1))
-                i = j + 1
-        elif ch == "{":
-            start = i
-            j = text.find("}", i + 1)
-            if j == -1:
-                i = n
-            else:
-                content = text[i + 1:j]
-                if content.isdigit():
-                    events.append((("SPEED", int(content)), start, j + 1))
-                i = j + 1
-        elif ch in ("-", "|"):
-            events.append((None, i, i + 1))
-            i += 1
-        else:
-            events.append((ch, i, i + 1))
-            i += 1
-    return events
+class PianoAutoplayer:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Piano Autoplayer - Tirji")
+        self.root.geometry("560x520")
 
+<<<<<<< HEAD
 
 class ControllerError(Exception):
     """Error de sintaxis en un script del Editor de teclado (controlador)."""
@@ -511,6 +508,8 @@ class Api:
     def __init__(self):
         self.window = None
         self.notifier = Notifier(lambda: self.window)
+=======
+>>>>>>> 884cf30cbdfd6cbceea211ec326c78b58acd0031
         self.playing = False
         self.stop_flag = threading.Event()
         self.play_thread = None
@@ -1115,28 +1114,20 @@ class Api:
         except Exception as e:
             return {"ok": False, "error": f"No se pudo conectar con la tienda: {e}"}
 
-    # -------- partituras --------
-    def list_sheets(self):
-        return sorted(f for f in os.listdir(SHEETS_DIR) if f.lower().endswith(".txt"))
+        self._build_ui()
+        self._register_hotkeys()
 
-    def load_sheet(self, name):
-        path = os.path.join(SHEETS_DIR, name)
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                return f.read()
-        except Exception as e:
-            return f"# No se pudo leer el archivo: {e}"
+    def _build_ui(self):
+        pad = {"padx": 10, "pady": 6}
 
-    def get_song_text(self):
-        return ""
+        frm_top = ttk.Frame(self.root)
+        frm_top.pack(fill="x", **pad)
 
-    @staticmethod
-    def _sanitize_filename(name):
-        name = (name or "").strip()
-        for ch in '<>:"/\\|?*':
-            name = name.replace(ch, "")
-        return name
+        ttk.Label(frm_top, text="Tiempo de inicio (segundos):").grid(row=0, column=0, sticky="w")
+        self.start_delay_var = tk.StringVar(value="3")
+        ttk.Entry(frm_top, textvariable=self.start_delay_var, width=8).grid(row=0, column=1, padx=(6, 20))
 
+<<<<<<< HEAD
     @staticmethod
     def validate_sheet(text):
         """Revisa que el texto tenga un formato de partitura válido
@@ -1323,107 +1314,86 @@ class Api:
             f"{len(imported)} archivo(s) importado(s), {len(rejected)} rechazado(s)."
         )
         return {"imported": imported, "rejected": rejected}
+=======
+        ttk.Label(frm_top, text="Intervalo entre notas (ms):").grid(row=0, column=2, sticky="w")
+        self.interval_var = tk.StringVar(value="300")
+        ttk.Entry(frm_top, textvariable=self.interval_var, width=8).grid(row=0, column=3, padx=6)
 
-    # -------- reproducción --------
-    def start(self, delay, interval_ms, song_text):
+        ttk.Label(
+            self.root,
+            text="Partitura (letras separadas por espacio, juntas = acorde, '-' = silencio):"
+        ).pack(anchor="w", **pad)
+>>>>>>> 884cf30cbdfd6cbceea211ec326c78b58acd0031
+
+        self.song_text = tk.Text(self.root, height=14, wrap="word")
+        self.song_text.pack(fill="both", expand=True, padx=10)
+        self.song_text.insert("1.0", "q w e r t y u")
+
+        frm_btn = ttk.Frame(self.root)
+        frm_btn.pack(fill="x", **pad)
+
+        self.start_btn = ttk.Button(frm_btn, text="Iniciar (F8)", command=self.start)
+        self.start_btn.pack(side="left", padx=(0, 8))
+
+        self.stop_btn = ttk.Button(frm_btn, text="Detener (F9 / Esc)", command=self.stop)
+        self.stop_btn.pack(side="left")
+
+        self.status_var = tk.StringVar(value="Listo.")
+        ttk.Label(self.root, textvariable=self.status_var, foreground="blue").pack(anchor="w", padx=10, pady=(0, 10))
+
+    def _register_hotkeys(self):
+        keyboard.add_hotkey("F8", self.start)
+        keyboard.add_hotkey("F9", self.stop)
+        keyboard.add_hotkey("esc", self.stop)
+
+    def _set_status(self, text):
+        self.status_var.set(text)
+        self.root.update_idletasks()
+
+    def start(self):
         if self.playing:
-            return False
+            return
         try:
-            delay = float(delay)
-            interval_ms = int(interval_ms)
-        except (TypeError, ValueError):
-            self.notifier.set_status("Tiempo de inicio o intervalo inválido.")
-            return False
+            delay = float(self.start_delay_var.get())
+            interval_ms = int(self.interval_var.get())
+        except ValueError:
+            messagebox.showerror("Error", "Tiempo de inicio o intervalo inválido.")
+            return
 
-        events = _tokenize(song_text or "")
-        if not events:
-            self.notifier.set_status("La partitura está vacía.")
-            return False
+        raw_song = self.song_text.get("1.0", "end").strip()
+        tokens = raw_song.split()
+        if not tokens:
+            messagebox.showerror("Error", "La partitura está vacía.")
+            return
 
         self.stop_flag.clear()
         self.playing = True
-        self.notifier.set_playing(True)
         self.play_thread = threading.Thread(
-            target=self._play, args=(events, delay, interval_ms), daemon=True
+            target=self._play, args=(tokens, delay, interval_ms), daemon=True
         )
         self.play_thread.start()
-        return True
 
     def stop(self):
         if self.playing:
             self.stop_flag.set()
-        return True
 
-    def _press_chord(self, keys_part):
-        pressed = []
-        for ch in keys_part:
-            try:
-                if ch.isupper():
-                    keyboard.press("shift")
-                    keyboard.press(ch.lower())
-                    pressed.append(("shift", ch.lower()))
-                else:
-                    keyboard.press(ch)
-                    pressed.append((None, ch))
-            except Exception:
-                self.notifier.set_status(f"Aviso: no se pudo tocar el símbolo '{ch}', se omitió.")
-        time.sleep(0.03)
-        for shift_key, ch in pressed:
-            try:
-                keyboard.release(ch)
-                if shift_key:
-                    keyboard.release(shift_key)
-            except Exception:
-                pass
+    def _play(self, tokens, delay, interval_ms):
+        # Cuenta regresiva para cambiar de ventana
+        remaining = delay
+        while remaining > 0 and not self.stop_flag.is_set():
+            self._set_status(f"Iniciando en {remaining:.1f}s... cambia a la ventana del juego")
+            step = 0.1
+            time.sleep(step)
+            remaining -= step
 
-    def _play(self, events, delay, interval_ms):
-        try:
-            remaining = delay
-            while remaining > 0 and not self.stop_flag.is_set():
-                self.notifier.set_status(f"Iniciando en {remaining:.1f}s... cambia a la ventana del juego")
-                step = 0.1
-                time.sleep(step)
-                remaining -= step
-
-            if self.stop_flag.is_set():
-                self.notifier.set_status("Cancelado antes de iniciar.")
-                return
-
-            self.notifier.set_status("Tocando... (F9 o Esc para detener)")
-
-            total = len(events)
-            wait_s = interval_ms / 1000.0
-            for idx, (event, start, end) in enumerate(events):
-                if self.stop_flag.is_set():
-                    break
-
-                if isinstance(event, tuple) and event[0] == "SPEED":
-                    wait_s = event[1] / 1000.0
-                    self.notifier.set_progress((idx + 1) / total * 100)
-                    continue
-
-                if event:
-                    self.notifier.set_now_playing(event)
-                    self._press_chord(event)
-                else:
-                    self.notifier.set_now_playing("· silencio ·")
-
-                self.notifier.set_progress((idx + 1) / total * 100)
-                time.sleep(wait_s)
-
-            if self.stop_flag.is_set():
-                self.notifier.set_status("Detenido.")
-            else:
-                self.notifier.set_status("Canción terminada.")
-                self.notifier.set_progress(100)
-        except Exception as e:
-            self.notifier.set_status(f"Error inesperado, detenido: {e}")
-        finally:
+        if self.stop_flag.is_set():
+            self._set_status("Cancelado antes de iniciar.")
             self.playing = False
-            self.notifier.set_playing(False)
-            self.notifier.set_now_playing("")
+            return
 
+        self._set_status("Tocando... (F9 o Esc para detener)")
 
+<<<<<<< HEAD
     # -------- Editor de teclado (controlador) --------
     def list_controllers(self):
         return sorted(f for f in os.listdir(CONTROLLERS_DIR) if f.lower().endswith(".txt"))
@@ -1687,8 +1657,25 @@ def _warn_if_temp_extraction():
         ctypes.windll.user32.MessageBoxW(0, message, "Piano Autoplayer - Aviso", MB_OK | ICON_WARNING)
     except Exception:
         print(message)
+=======
+        for token in tokens:
+            if self.stop_flag.is_set():
+                break
 
+            match = TOKEN_RE.match(token)
+            keys_part, custom_ms = (match.group(1), match.group(2)) if match else (token, None)
+            wait_s = (int(custom_ms) if custom_ms else interval_ms) / 1000.0
+>>>>>>> 884cf30cbdfd6cbceea211ec326c78b58acd0031
 
+            if keys_part and keys_part != "-":
+                keys = list(keys_part)
+                for k in keys:
+                    keyboard.press(k)
+                time.sleep(0.03)
+                for k in keys:
+                    keyboard.release(k)
+
+<<<<<<< HEAD
 def main():
     os.makedirs(SHEETS_DIR, exist_ok=True)
     os.makedirs(CONTROLLERS_DIR, exist_ok=True)
@@ -1760,7 +1747,18 @@ def _fatal_startup_error(message):
         ctypes.windll.user32.MessageBoxW(0, message, "Piano Autoplayer - Error", 0x10)
     except Exception:
         print(message)
+=======
+            time.sleep(wait_s)
+
+        self.playing = False
+        if self.stop_flag.is_set():
+            self._set_status("Detenido.")
+        else:
+            self._set_status("Canción terminada.")
+>>>>>>> 884cf30cbdfd6cbceea211ec326c78b58acd0031
 
 
 if __name__ == "__main__":
-    main()
+    root = tk.Tk()
+    app = PianoAutoplayer(root)
+    root.mainloop()

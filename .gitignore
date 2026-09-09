@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 ## Compilado / generado por PyInstaller (build.bat lo vuelve a crear)
+=======
+﻿## Compilado / generado por PyInstaller (build.bat lo vuelve a crear)
+>>>>>>> 884cf30cbdfd6cbceea211ec326c78b58acd0031
 build/
 dist/
 *.spec
@@ -16,7 +20,12 @@ controladores/
 ## Nunca subir tokens/sesiones ni logs con datos de usuarios
 *_session.json
 login_debug.log
+<<<<<<< HEAD
 tienda.db
 uploads_photos/
 piano-sheets/
 piano_tienda_server_viejo.py
+=======
+
+tienda.db
+>>>>>>> 884cf30cbdfd6cbceea211ec326c78b58acd0031
