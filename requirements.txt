@@ -1,4 +1,4 @@
 keyboard
-pywebview==5.3.2
+pywebview==6.2.1
 requests
 pyinstaller

@@ -84,8 +84,17 @@ py -m pip install --upgrade pip >nul
 py -m pip install -r requirements.txt
 
 echo.
-echo Abriendo el programa...
-py piano_autoplayer.py
-popd
+echo Generando el programa ^(la primera vez tarda un poco^)...
+py -m PyInstaller --onedir --noconsole --noconfirm --name "PianoAutoplayer" --icon "assets\icon.ico" --add-data "web;web" piano_autoplayer.py >nul 2>build_error.log
 
-if errorlevel 1 pause
+if exist "dist\PianoAutoplayer\PianoAutoplayer.exe" (
+    echo Abriendo el programa...
+    start "" "dist\PianoAutoplayer\PianoAutoplayer.exe"
+) else (
+    echo.
+    echo No se pudo generar el programa compilado ^(revisa build_error.log
+    echo dentro de "%CARPETA%" si quieres ver el detalle^). Abriendo la
+    echo version normal en su lugar...
+    py piano_autoplayer.py
+)
+popd
