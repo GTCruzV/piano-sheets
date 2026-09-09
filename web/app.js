@@ -462,7 +462,6 @@ gateLoginBtn.addEventListener('click', () => {
 
 // ---------- tienda: sesión (login / registro / logout) ----------
 let tiendaSessionInfo = null; // { username, isAdmin, photo }
-let myPostItem = null; // publicación propia: { id, name, status, reject_reason, photo, ... } o null
 
 const tiendaLoggedOut = document.getElementById('tiendaLoggedOut');
 const tiendaLoggedIn = document.getElementById('tiendaLoggedIn');
@@ -517,57 +516,53 @@ tLogoutBtn.addEventListener('click', () => {
   });
 });
 
-// ---------- tienda: estado de mi propia publicación ----------
+// ---------- tienda: estado de mis propias publicaciones ----------
+// Ya no hay límite de una publicación por usuario (se puede publicar
+// tantas veces como se quiera), así que el botón de "＋" siempre está
+// visible mientras haya sesión iniciada. Esta franja solo avisa de
+// las que están pendientes de aprobación o fueron rechazadas, para
+// que no se pierdan de vista mientras no aparecen en el feed público.
+let myPostItems = [];
+
 function refreshMyPost() {
-  if (!tiendaSessionInfo) { myPostItem = null; renderMyPostStatus(); return; }
+  if (!tiendaSessionInfo) { myPostItems = []; renderMyPostStatus(); return; }
   callApiAsync('tienda_mine', currentTiendaKind).then((res) => {
-    myPostItem = (res && res.ok) ? res.item : null;
+    myPostItems = (res && res.ok) ? (res.items || []) : [];
     renderMyPostStatus();
   });
 }
 
 function renderMyPostStatus() {
-  myPostStatus.classList.remove('pending', 'approved', 'rejected');
   myPostStatus.innerHTML = '';
-  if (!tiendaSessionInfo) {
+  newPostFab.classList.toggle('hidden', !tiendaSessionInfo);
+
+  const noteworthy = myPostItems.filter((it) => it.status === 'pending' || it.status === 'rejected');
+  if (!tiendaSessionInfo || !noteworthy.length) {
     myPostStatus.classList.add('hidden');
-    newPostFab.classList.add('hidden');
-    return;
-  }
-  if (!myPostItem) {
-    myPostStatus.classList.add('hidden');
-    newPostFab.classList.remove('hidden');
     return;
   }
   myPostStatus.classList.remove('hidden');
 
-  const textEl = document.createElement('span');
-  myPostStatus.appendChild(textEl);
+  noteworthy.forEach((item) => {
+    const row = document.createElement('div');
+    row.className = 'my-post-row ' + item.status;
 
-  if (myPostItem.status === 'pending') {
-    myPostStatus.classList.add('pending');
-    textEl.textContent = `⏳ Tu publicación "${myPostItem.name}" está esperando la aprobación del admin.`;
-    newPostFab.classList.add('hidden');
-  } else if (myPostItem.status === 'approved') {
-    myPostStatus.classList.add('approved');
-    textEl.textContent = `✅ Tu publicación "${myPostItem.name}" ya está en la tienda.`;
-    newPostFab.classList.add('hidden');
-  } else if (myPostItem.status === 'rejected') {
-    myPostStatus.classList.add('rejected');
-    const reason = myPostItem.reject_reason ? (': ' + myPostItem.reject_reason) : '.';
-    textEl.textContent = `❌ Tu publicación "${myPostItem.name}" fue rechazada${reason} Puedes intentar de nuevo.`;
-    newPostFab.classList.remove('hidden');
-  }
+    const textEl = document.createElement('span');
+    if (item.status === 'pending') {
+      textEl.textContent = `⏳ "${item.name}" está esperando la aprobación del admin.`;
+    } else {
+      const reason = item.reject_reason ? (': ' + item.reject_reason) : '.';
+      textEl.textContent = `❌ "${item.name}" fue rechazada${reason}`;
+    }
+    row.appendChild(textEl);
 
-  // se puede borrar la propia publicación en cualquier estado (pendiente,
-  // aprobada o rechazada), no solo el admin
-  if (myPostItem.status === 'pending' || myPostItem.status === 'approved') {
     const delBtn = document.createElement('button');
     delBtn.className = 'ghost-btn danger my-post-delete-btn';
-    delBtn.textContent = '🗑️ Eliminar';
+    delBtn.textContent = '🗑️';
+    delBtn.title = 'Eliminar';
     delBtn.addEventListener('click', () => {
-      if (!window.confirm('¿Seguro que quieres eliminar tu publicación "' + myPostItem.name + '"?')) return;
-      callApiAsync('tienda_delete', myPostItem.id).then((res) => {
+      if (!window.confirm('¿Seguro que quieres eliminar "' + item.name + '"?')) return;
+      callApiAsync('tienda_delete', item.id).then((res) => {
         if (res && res.ok) {
           toast('Publicación eliminada.');
           refreshMyPost();
@@ -577,8 +572,10 @@ function renderMyPostStatus() {
         }
       });
     });
-    myPostStatus.appendChild(delBtn);
-  }
+    row.appendChild(delBtn);
+
+    myPostStatus.appendChild(row);
+  });
 }
 
 // ---------- tienda: apartado (Partituras / Controladores) ----------
@@ -710,6 +707,30 @@ function renderPostGrid(container, items, { isAdmin, currentUsername, onAvatarCl
 
     const actions = document.createElement('div');
     actions.className = 'post-actions';
+
+    const likeBtn = document.createElement('button');
+    likeBtn.className = 'ghost-btn like-btn' + (item.liked_by_me ? ' liked' : '');
+    const setLikeLabel = () => {
+      likeBtn.textContent = (item.liked_by_me ? '❤️' : '🤍') + ' ' + (item.likes_count || 0);
+    };
+    setLikeLabel();
+    likeBtn.addEventListener('click', () => {
+      if (!tiendaSessionInfo) { setStatus('Inicia sesión para dar like.'); return; }
+      likeBtn.disabled = true;
+      callApiAsync('tienda_like', item.id).then((res) => {
+        likeBtn.disabled = false;
+        if (res && res.ok) {
+          item.liked_by_me = res.liked;
+          item.likes_count = res.likes_count;
+          likeBtn.classList.toggle('liked', item.liked_by_me);
+          setLikeLabel();
+        } else {
+          setStatus(res && res.error ? res.error : 'No se pudo dar like.');
+        }
+      });
+    });
+    actions.appendChild(likeBtn);
+
     const dlBtn = document.createElement('button');
     dlBtn.className = 'accent-btn';
     dlBtn.textContent = '⬇️ Descargar';
@@ -1097,10 +1118,12 @@ const postModalOverlay = document.getElementById('postModalOverlay');
 const postModalClose = document.getElementById('postModalClose');
 const postSourceFileBtn = document.getElementById('postSourceFileBtn');
 const postSourceFileName = document.getElementById('postSourceFileName');
+const postSourceFileDrop = document.getElementById('postSourceFileDrop');
 const postNameInput = document.getElementById('postName');
 const postContentText = document.getElementById('postContentText');
 const postPickPhotoBtn = document.getElementById('postPickPhotoBtn');
 const postPhotoName = document.getElementById('postPhotoName');
+const postPhotoDrop = document.getElementById('postPhotoDrop');
 const postModalError = document.getElementById('postModalError');
 const postSubmitBtn = document.getElementById('postSubmitBtn');
 
@@ -1149,6 +1172,65 @@ postPickPhotoBtn.addEventListener('click', () => {
   callApi('tienda_pick_post_photo').then((filename) => {
     postPhotoName.textContent = filename || '';
   });
+});
+
+// ---------- tienda: arrastrar y soltar (archivo .txt e imagen) ----------
+// Se puede soltar tanto el archivo de texto como la imagen directamente
+// sobre su recuadro, en vez de tener que usar siempre el explorador.
+function setupDropZone(zoneEl, { onFile, accept }) {
+  if (!zoneEl) return;
+  ['dragenter', 'dragover'].forEach((evt) => {
+    zoneEl.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      zoneEl.classList.add('drag-over');
+    });
+  });
+  ['dragleave', 'dragend'].forEach((evt) => {
+    zoneEl.addEventListener(evt, (e) => {
+      e.preventDefault();
+      zoneEl.classList.remove('drag-over');
+    });
+  });
+  zoneEl.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    zoneEl.classList.remove('drag-over');
+    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!file) return;
+    if (accept && !accept(file)) {
+      postModalError.textContent = 'Ese tipo de archivo no es válido aquí.';
+      return;
+    }
+    onFile(file);
+  });
+}
+
+setupDropZone(postSourceFileDrop, {
+  accept: (file) => /\.txt$/i.test(file.name) || file.type.startsWith('text/'),
+  onFile: (file) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      postContentText.value = reader.result || '';
+      const base = file.name.replace(/\.txt$/i, '');
+      if (!postNameInput.value.trim()) postNameInput.value = base;
+      postSourceFileName.textContent = file.name;
+    };
+    reader.readAsText(file);
+  },
+});
+
+setupDropZone(postPhotoDrop, {
+  accept: (file) => file.type.startsWith('image/'),
+  onFile: (file) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      callApi('tienda_drop_post_photo', reader.result, file.name).then((filename) => {
+        postPhotoName.textContent = filename || file.name;
+      });
+    };
+    reader.readAsDataURL(file);
+  },
 });
 
 postSubmitBtn.addEventListener('click', () => {
