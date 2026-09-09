@@ -1658,6 +1658,14 @@ def main():
     print(f"  modo debug (consola/devtools) = {debug_mode}")
 
     api = Api()
+    # on_top=True (ventana siempre encima) puede activar un choque
+    # conocido entre pywebview y funciones de Windows 11 que escanean
+    # el contenido de ventanas "topmost" (Recall / Click to Do /
+    # sugerencias de texto), y eso puede dejar los botones sin
+    # responder o la app "No responde". Lo dejamos apagado por
+    # defecto; si de verdad necesitas la ventana siempre encima,
+    # ábrelo con la variable de entorno PIANO_ONTOP=1.
+    on_top = os.environ.get("PIANO_ONTOP") == "1"
     window = webview.create_window(
         "Piano Autoplayer • Tirji",
         url=os.path.join(WEB_DIR, "index.html"),
@@ -1666,7 +1674,7 @@ def main():
         height=760,
         min_size=(560, 620),
         background_color="#0c0d16",
-        on_top=True,
+        on_top=on_top,
     )
     api.window = window
 
