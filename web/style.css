@@ -646,8 +646,13 @@ body.gate-locked .app { display: none !important; }
 }
 .fab-btn:hover { filter: brightness(1.12); transform: translateY(-2px) scale(1.03); }
 
-/* ---------- mi estado de publicación ---------- */
+/* ---------- mi estado de publicaciones (pendientes/rechazadas) ---------- */
 .my-post-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.my-post-row {
   font-size: 12px;
   padding: 9px 13px;
   border-radius: 12px;
@@ -660,10 +665,32 @@ body.gate-locked .app { display: none !important; }
   gap: 10px;
   flex-wrap: wrap;
 }
-.my-post-status.pending { border-color: rgba(56,208,255,.4); color: var(--blue); }
-.my-post-status.approved { border-color: rgba(34,229,152,.4); color: var(--green); }
-.my-post-status.rejected { border-color: rgba(255,84,112,.4); color: var(--red-hover); }
-.my-post-status .my-post-delete-btn { flex-shrink: 0; }
+.my-post-row.pending { border-color: rgba(56,208,255,.4); color: var(--blue); }
+.my-post-row.rejected { border-color: rgba(255,84,112,.4); color: var(--red-hover); }
+.my-post-row .my-post-delete-btn { flex-shrink: 0; }
+
+/* ---------- likes ---------- */
+.like-btn { transition: transform .15s ease; }
+.like-btn.liked { border-color: rgba(255,84,112,.5); color: var(--red-hover); }
+.like-btn:active { transform: scale(0.92); }
+
+/* ---------- arrastrar y soltar (subir publicación) ---------- */
+.drop-zone {
+  position: relative;
+  border: 1px dashed transparent;
+  border-radius: 10px;
+  padding: 4px;
+  transition: border-color .15s ease, background .15s ease;
+}
+.drop-zone .drop-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  opacity: .75;
+}
+.drop-zone.drag-over {
+  border-color: var(--accent, #7c5cff);
+  background: rgba(124, 92, 255, .08);
+}
 
 /* ---------- panel de admin: solicitudes pendientes ---------- */
 .pending-list { display: flex; flex-direction: column; gap: 10px; }
