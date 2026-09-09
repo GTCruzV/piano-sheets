@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Piano Autoplayer · Tirji</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07060f;
+    --bg2: #0b0917;
+    --panel: rgba(24, 22, 41, .55);
+    --panel-border: rgba(168, 130, 255, .16);
+    --panel-hi: rgba(168, 130, 255, .35);
+    --accent: #a855f7;
+    --accent2: #6366f1;
+    --accent-hover: #c084fc;
+    --mint: #2dd4a7;
+    --mint-dim: rgba(45, 212, 167, .18);
+    --text: #f1eefb;
+    --text-dim: #a9a3c4;
+    --serif: 'Space Grotesk', sans-serif;
+    --sans: 'Inter', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- fondo animado ---------- */
+  .field { position: fixed; inset: 0; z-index: -2; background: var(--bg); }
+  .blob {
+    position: fixed; border-radius: 50%; filter: blur(90px); opacity: .38;
+    z-index: -1; pointer-events: none;
+  }
+  .b1 { width: 46vw; height: 46vw; top: -14vw; left: -10vw; background: radial-gradient(circle, var(--accent), transparent 70%); animation: drift1 26s ease-in-out infinite; }
+  .b2 { width: 38vw; height: 38vw; bottom: -12vw; right: -8vw; background: radial-gradient(circle, var(--accent2), transparent 70%); animation: drift2 32s ease-in-out infinite; }
+  .b3 { width: 30vw; height: 30vw; top: 30vh; right: 10vw; background: radial-gradient(circle, var(--mint), transparent 72%); opacity: .16; animation: drift3 22s ease-in-out infinite; }
+  @keyframes drift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(6vw, 8vh) scale(1.12); } }
+  @keyframes drift2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-5vw, -6vh) scale(1.08); } }
+  @keyframes drift3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-4vw, 5vh); } }
+  .grain {
+    position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .035; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---------- layout general ---------- */
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+  section { padding: 96px 0; }
+
+  nav {
+    position: sticky; top: 0; z-index: 20;
+    backdrop-filter: blur(14px);
+    background: rgba(7,6,15,.6);
+    border-bottom: 1px solid var(--panel-border);
+  }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-weight: 600; font-size: 16px; }
+  .brand-mark { width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg, var(--accent2), var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 13px; }
+  nav a.nav-cta {
+    font-family: var(--sans); font-weight: 600; font-size: 13px; color: #07110d;
+    background: var(--mint); padding: 9px 18px; border-radius: 999px; text-decoration: none;
+    box-shadow: 0 0 0 0 rgba(45,212,167,.5);
+  }
+  nav a.nav-cta:hover { filter: brightness(1.06); }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 88px 0 40px; text-align: center; }
+  .eyebrow-row { display: flex; justify-content: center; gap: 8px; margin-bottom: 22px; }
+  .eyebrow {
+    font-size: 12.5px; color: var(--text-dim); border: 1px solid var(--panel-border);
+    background: var(--panel); padding: 6px 14px; border-radius: 999px;
+  }
+  h1 {
+    font-family: var(--serif); font-weight: 700; letter-spacing: -0.02em;
+    font-size: clamp(38px, 6vw, 68px); line-height: 1.04; margin: 0 auto 22px; max-width: 780px;
+  }
+  h1 .glow { background: linear-gradient(90deg, var(--accent-hover), var(--mint)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lede { font-size: 18px; color: var(--text-dim); max-width: 560px; margin: 0 auto 40px; line-height: 1.6; }
+
+  .cta-row { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .cta-main {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--sans); font-weight: 600; font-size: 16px; color: #07110d;
+    background: var(--mint); padding: 16px 30px; border-radius: 14px; text-decoration: none;
+    box-shadow: 0 14px 40px -12px rgba(45,212,167,.55);
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .cta-main:hover { transform: translateY(-2px); box-shadow: 0 18px 46px -10px rgba(45,212,167,.65); }
+  .cta-note { font-size: 12.5px; color: var(--text-dim); }
+  .cta-note code { background: var(--panel); border: 1px solid var(--panel-border); padding: 2px 7px; border-radius: 6px; color: var(--text); font-size: 11.5px; }
+
+  /* ---------- teclado animado ---------- */
+  .keyboard-stage {
+    margin: 56px auto 0; max-width: 760px;
+    padding: 34px 22px 26px;
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 22px;
+    position: relative;
+  }
+  .keyboard-stage::before {
+    content: ""; position: absolute; inset: -1px; border-radius: 22px; padding: 1px;
+    background: linear-gradient(120deg, rgba(168,85,247,.35), transparent 40%, rgba(45,212,167,.25));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
+  }
+  .kb-label { font-size: 11.5px; color: var(--text-dim); text-align: left; margin-bottom: 16px; font-family: var(--sans); }
+  .kb-label b { color: var(--text); font-weight: 600; }
+  .kb-row { display: flex; justify-content: center; gap: 7px; margin-bottom: 7px; }
+  .key {
+    width: 40px; height: 44px; border-radius: 8px;
+    background: rgba(255,255,255,.04); border: 1px solid var(--panel-border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--sans); font-size: 12px; color: var(--text-dim);
+    transition: transform .1s ease, background .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease;
+  }
+  .key.wide { width: 60px; }
+  .key.active {
+    transform: translateY(3px);
+    background: linear-gradient(160deg, var(--accent-hover), var(--accent2));
+    border-color: transparent; color: #fff;
+    box-shadow: 0 0 22px -2px rgba(168,85,247,.75), 0 0 0 3px rgba(168,85,247,.14);
+  }
+  .key.active.mint {
+    background: linear-gradient(160deg, #6bf0cb, var(--mint));
+    box-shadow: 0 0 22px -2px rgba(45,212,167,.7), 0 0 0 3px rgba(45,212,167,.14);
+  }
+  @media (max-width: 640px) {
+    .key { width: 26px; height: 34px; font-size: 10px; }
+    .key.wide { width: 40px; }
+    .kb-row { gap: 4px; }
+  }
+
+  /* ---------- features ---------- */
+  .features { padding-top: 40px; }
+  .section-head { text-align: center; max-width: 560px; margin: 0 auto 52px; }
+  .section-head h2 { font-family: var(--serif); font-size: clamp(26px, 3.4vw, 34px); font-weight: 600; margin: 0 0 12px; letter-spacing: -.01em; }
+  .section-head p { color: var(--text-dim); font-size: 15.5px; line-height: 1.6; margin: 0; }
+
+  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  @media (max-width: 820px) { .feature-grid { grid-template-columns: 1fr; } }
+  .feature {
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 18px;
+    padding: 28px 24px; text-align: left;
+  }
+  .feature .ico {
+    width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    font-size: 19px; margin-bottom: 18px;
+  }
+  .feature:nth-child(1) .ico { background: rgba(168,85,247,.16); }
+  .feature:nth-child(2) .ico { background: rgba(99,102,241,.16); }
+  .feature:nth-child(3) .ico { background: var(--mint-dim); }
+  .feature h3 { font-family: var(--serif); font-size: 17.5px; font-weight: 600; margin: 0 0 9px; }
+  .feature p { color: var(--text-dim); font-size: 14px; line-height: 1.6; margin: 0; }
+
+  /* ---------- pasos ---------- */
+  .steps { padding-top: 20px; }
+  .steps-list { display: flex; flex-direction: column; gap: 0; max-width: 620px; margin: 0 auto; }
+  .step { display: flex; gap: 18px; padding: 22px 0; border-bottom: 1px solid var(--panel-border); }
+  .step:last-child { border-bottom: none; }
+  .step .n {
+    flex: none; width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center;
+    font-family: var(--serif); font-size: 13px; font-weight: 600; color: var(--text);
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+  }
+  .step .t h4 { margin: 2px 0 5px; font-size: 15.5px; font-weight: 600; }
+  .step .t p { margin: 0; color: var(--text-dim); font-size: 14px; line-height: 1.55; }
+
+  /* ---------- cta final ---------- */
+  .final-cta { text-align: center; padding: 88px 0 100px; }
+  .final-cta h2 { font-family: var(--serif); font-size: clamp(26px, 4vw, 38px); font-weight: 600; margin: 0 0 14px; letter-spacing: -.01em; }
+  .final-cta p { color: var(--text-dim); margin: 0 0 32px; }
+
+  footer { border-top: 1px solid var(--panel-border); padding: 28px 0; }
+  footer .wrap { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+  footer .fbrand { font-family: var(--serif); font-weight: 600; font-size: 13.5px; color: var(--text-dim); }
+  footer a { color: var(--text-dim); font-size: 13px; text-decoration: none; }
+  footer a:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<div class="field"></div>
+<div class="blob b1"></div>
+<div class="blob b2"></div>
+<div class="blob b3"></div>
+<div class="grain"></div>
+
+<nav>
+  <div class="wrap">
+    <div class="brand"><span class="brand-mark">🎹</span> Piano Autoplayer</div>
+    <a class="nav-cta" href="#descargar">Descargar</a>
+  </div>
+</nav>
+
+<header class="hero wrap">
+  <div class="eyebrow-row">
+    <span class="eyebrow">Gratis</span>
+    <span class="eyebrow">Windows</span>
+    <span class="eyebrow">Código abierto</span>
+  </div>
+  <h1>Tus teclas, tocándose <span class="glow">solas</span>.</h1>
+  <p class="lede">
+    Piano Autoplayer reproduce tus partituras automáticamente y, con el
+    Editor de teclado, automatiza cualquier combinación de teclas que
+    se te ocurra. Instálalo con un clic.
+  </p>
+
+  <div class="cta-row" id="descargar">
+    <a class="cta-main" href="https://github.com/GTCruzV/piano-sheets/releases/latest/download/descargar_e_iniciar.bat">
+      ⬇ Descargar Piano Autoplayer
+    </a>
+    <span class="cta-note">Descarga <code>descargar_e_iniciar.bat</code> · ábrelo y se instala solo</span>
+  </div>
+
+  <div class="keyboard-stage">
+    <div class="kb-label">reproduciendo <b>ahora mismo</b>, sin tocar nada</div>
+    <div id="kbGrid"></div>
+  </div>
+</header>
+
+<section class="features wrap">
+  <div class="section-head">
+    <h2>Un programa, tres formas de usarlo</h2>
+    <p>Desde tocar tu canción favorita hasta automatizar cualquier secuencia de teclas.</p>
+  </div>
+  <div class="feature-grid">
+    <div class="feature">
+      <div class="ico">🎹</div>
+      <h3>Piano automático</h3>
+      <p>Pega o escribe tu partitura y el programa la toca sola, nota por nota, al ritmo que le pongas.</p>
+    </div>
+    <div class="feature">
+      <div class="ico">⌨️</div>
+      <h3>Editor de teclado</h3>
+      <p>Mantener, tocar a ritmo, combinar teclas con Shift o Ctrl, esperar unos segundos: tú decides cómo se comporta cada tecla.</p>
+    </div>
+    <div class="feature">
+      <div class="ico">🛒</div>
+      <h3>Tienda</h3>
+      <p>Publica tus partituras y controladores, o descarga los que compartió el resto de la comunidad.</p>
+    </div>
+  </div>
+</section>
+
+<section class="steps wrap">
+  <div class="section-head">
+    <h2>Instalarlo toma dos clics</h2>
+    <p>Nada de configurar nada a mano.</p>
+  </div>
+  <div class="steps-list">
+    <div class="step">
+      <div class="n">1</div>
+      <div class="t"><h4>Descarga el archivo</h4><p>Un solo <code>.bat</code>, sin necesidad de saber qué es GitHub.</p></div>
+    </div>
+    <div class="step">
+      <div class="n">2</div>
+      <div class="t"><h4>Ábrelo</h4><p>Instala automáticamente lo que haga falta.</p></div>
+    </div>
+    <div class="step">
+      <div class="n">3</div>
+      <div class="t"><h4>Listo</h4><p>El programa se abre solo, ya con todo funcionando.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="final-cta wrap">
+  <h2>Ponlo a tocar por ti.</h2>
+  <p>Un clic, y en un minuto lo tienes abierto.</p>
+  <a class="cta-main" href="https://github.com/GTCruzV/piano-sheets/releases/latest/download/descargar_e_iniciar.bat">
+    ⬇ Descargar ahora
+  </a>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span class="fbrand">Piano Autoplayer · Tirji</span>
+    <a href="https://github.com/GTCruzV/piano-sheets" target="_blank" rel="noopener">Ver el código en GitHub</a>
+  </div>
+</footer>
+
+<script>
+  // Teclado que "se toca solo": una secuencia de teclas se ilumina en bucle,
+  // como si el propio programa estuviera reproduciendo algo.
+  const rows = [
+    ["Q","W","E","R","T","Y","U"],
+    ["A","S","D","F","G","H","J"],
+    ["Z","X","C","V","B","N","M"],
+  ];
+  const grid = document.getElementById('kbGrid');
+  const keyEls = {};
+  rows.forEach(row => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'kb-row';
+    row.forEach(k => {
+      const el = document.createElement('div');
+      el.className = 'key';
+      el.textContent = k;
+      rowEl.appendChild(el);
+      keyEls[k] = el;
+    });
+    grid.appendChild(rowEl);
+  });
+  // fila de espaciadora, decorativa
+  const spaceRow = document.createElement('div');
+  spaceRow.className = 'kb-row';
+  const space = document.createElement('div');
+  space.className = 'key wide';
+  space.style.width = '220px';
+  space.textContent = '';
+  spaceRow.appendChild(space);
+  grid.appendChild(spaceRow);
+  keyEls[' '] = space;
+
+  // "melodía" de teclas a iluminar, con su duración en ms
+  const sequence = [
+    ['Q',260],['W',260],['E',260],['Q',180],['E',180],['T',340],
+    [' ',200],
+    ['A',260],['S',260],['D',260],['F',420],
+    ['G',220],['F',220],['D',220],['S',420],
+    [' ',260],
+    ['Z',220],['X',220],['C',220],['V',420],
+    ['H',260],['J',260],['U',260],['Y',420],
+  ];
+
+  let i = 0;
+  let mintToggle = 0;
+  function tick() {
+    const [key, dur] = sequence[i % sequence.length];
+    const el = keyEls[key];
+    if (el) {
+      mintToggle++;
+      el.classList.add('active');
+      if (mintToggle % 3 === 0) el.classList.add('mint');
+      setTimeout(() => { el.classList.remove('active', 'mint'); }, Math.max(90, dur - 60));
+    }
+    i++;
+    setTimeout(tick, dur);
+  }
+  // respeta a quien prefiere menos movimiento
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduceMotion) tick();
+</script>
+
+</body>
+</html>
