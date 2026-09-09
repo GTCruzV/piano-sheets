@@ -16,3 +16,5 @@ controladores/
 ## Nunca subir tokens/sesiones ni logs con datos de usuarios
 *_session.json
 login_debug.log
+
+tienda.db
