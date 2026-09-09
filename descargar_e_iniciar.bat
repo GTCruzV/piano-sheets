@@ -43,20 +43,24 @@ if exist "%CARPETA%\piano_autoplayer.py" (
 
 :DESCARGAR
 echo Descargando el programa desde GitHub...
-powershell -NoProfile -Command ^
-  "$ErrorActionPreference='Stop'; Invoke-WebRequest -Uri '%REPO_URL%/archive/refs/heads/%RAMA%.zip' -OutFile 'piano-autoplayer-descarga.zip'"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'Stop'; Invoke-WebRequest -Uri '%REPO_URL%/archive/refs/heads/%RAMA%.zip' -OutFile 'piano-autoplayer-descarga.zip'"
 if errorlevel 1 (
     echo.
     echo No se pudo descargar. Revisa tu conexion a internet, o que
-    echo el link de arriba (REPO_URL) sea correcto y el repositorio
+    echo el link de arriba ^(REPO_URL^) sea correcto y el repositorio
     echo sea publico.
     pause
     exit /b 1
 )
 
 echo Descomprimiendo...
-powershell -NoProfile -Command ^
-  "Expand-Archive -Path 'piano-autoplayer-descarga.zip' -DestinationPath '.' -Force"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive -Path 'piano-autoplayer-descarga.zip' -DestinationPath '.' -Force"
+if errorlevel 1 (
+    echo.
+    echo No se pudo descomprimir el archivo descargado.
+    pause
+    exit /b 1
+)
 del piano-autoplayer-descarga.zip
 
 REM GitHub descomprime la carpeta como "NOMBRE-DEL-REPO-RAMA"
