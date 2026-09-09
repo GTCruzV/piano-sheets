@@ -508,8 +508,8 @@ class Notifier:
 
 class Api:
     def __init__(self):
-        self.window = None
-        self.notifier = Notifier(lambda: self.window)
+        self._window = None
+        self.notifier = Notifier(lambda: self._window)
         self.playing = False
         self.stop_flag = threading.Event()
         self.play_thread = None
@@ -588,7 +588,7 @@ class Api:
         return True
 
     def _deliver_async(self, req_id, result):
-        win = self.window
+        win = self._window
         if win is None:
             return
         try:
@@ -689,10 +689,10 @@ class Api:
         return os.path.basename(path)
 
     def _pick_image_file(self):
-        if self.window is None:
+        if self._window is None:
             return None
         try:
-            paths = self.window.create_file_dialog(
+            paths = self._window.create_file_dialog(
                 webview.FileDialog.OPEN,
                 allow_multiple=False,
                 file_types=("Imágenes (*.png;*.jpg;*.jpeg;*.gif;*.webp)",),
@@ -707,10 +707,10 @@ class Api:
         """Abre el explorador para elegir un .txt YA GUARDADO en la
         computadora (su propio proyecto) para usarlo como partitura a
         publicar en la tienda. Devuelve {name, content} o None."""
-        if self.window is None:
+        if self._window is None:
             return None
         try:
-            paths = self.window.create_file_dialog(
+            paths = self._window.create_file_dialog(
                 webview.FileDialog.OPEN,
                 allow_multiple=False,
                 file_types=("Archivos de texto (*.txt)", "Todos los archivos (*.*)"),
@@ -1222,10 +1222,10 @@ class Api:
         Cada archivo se valida con el mismo formato de partituras;
         solo se copian a la carpeta 'partituras' los que sean válidos,
         los demás se descartan y se avisa cuáles fueron."""
-        if self.window is None:
+        if self._window is None:
             return []
         try:
-            paths = self.window.create_file_dialog(
+            paths = self._window.create_file_dialog(
                 webview.FileDialog.OPEN,
                 allow_multiple=True,
                 file_types=("Archivos de texto (*.txt)", "Todos los archivos (*.*)"),
@@ -1424,10 +1424,10 @@ class Api:
         return {"ok": True, "name": safe}
 
     def import_controller_files(self):
-        if self.window is None:
+        if self._window is None:
             return []
         try:
-            paths = self.window.create_file_dialog(
+            paths = self._window.create_file_dialog(
                 webview.FileDialog.OPEN,
                 allow_multiple=True,
                 file_types=("Archivos de texto (*.txt)", "Todos los archivos (*.*)"),
@@ -1676,7 +1676,7 @@ def main():
         background_color="#0c0d16",
         on_top=on_top,
     )
-    api.window = window
+    api._window = window
 
     def on_loaded():
         print("Piano Autoplayer: la ventana terminó de cargar (evento 'loaded').")
