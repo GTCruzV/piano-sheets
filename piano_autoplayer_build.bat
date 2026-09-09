@@ -1,12 +1,7 @@
 @echo off
-echo Instalando dependencias...
-py -m pip install --upgrade pip
-py -m pip install keyboard pyinstaller
-
-echo.
-echo Compilando el .exe...
-py -m PyInstaller --onefile --noconsole --name "PianoAutoplayer" piano_autoplayer.py
-
-echo.
-echo Listo. El ejecutable esta en la carpeta "dist\PianoAutoplayer.exe"
-pause
+REM Este script quedo desactualizado: no instalaba pywebview/requests/
+REM flask/werkzeug ni empacaba la carpeta "web" ni el icono, asi que el
+REM .exe salia roto (sin Tienda y sin interfaz). Usa build.bat en su
+REM lugar; este archivo ahora solo llama a build.bat para evitar que
+REM alguien lo use por error y genere un .exe incompleto.
+call build.bat

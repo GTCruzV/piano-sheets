@@ -1,3 +1,22 @@
-﻿build/
+## Compilado / generado por PyInstaller (build.bat lo vuelve a crear)
+build/
 dist/
+*.spec
+
+## Python
 __pycache__/
+*.pyc
+
+## Datos propios de cada instalación: NO se comparten entre compañeros
+partituras/
+controladores/
+.tienda_session.json
+.device_id
+
+## Nunca subir tokens/sesiones ni logs con datos de usuarios
+*_session.json
+login_debug.log
+tienda.db
+uploads_photos/
+piano-sheets/
+piano_tienda_server_viejo.py
