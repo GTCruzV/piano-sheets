@@ -118,6 +118,21 @@ def _load_or_create_device_id():
 
 DEVICE_ID = _load_or_create_device_id()
 
+LOG_PATH = os.path.join(BASE_DIR, "piano_debug.log")
+
+
+def _log(msg):
+    """Bitácora en disco. Con --noconsole (el .exe normal) los print()
+    no se ven en ningún lado, así que si el programa se cuelga no hay
+    forma de saber en qué paso se quedó. Esto escribe cada paso clave a
+    'piano_debug.log' junto al programa, para poder ver EXACTAMENTE
+    hasta dónde llegó la última vez que se abrió."""
+    try:
+        with open(LOG_PATH, "a", encoding="utf-8") as f:
+            f.write(f"[{time.strftime('%H:%M:%S')}] {msg}\n")
+    except Exception:
+        pass
+
 
 def _tokenize(text):
     """Convierte la partitura completa en una lista de eventos, sin
@@ -1731,8 +1746,35 @@ def main():
     print(f"  BASE_DIR = {BASE_DIR}")
     print(f"  WEB_DIR  = {WEB_DIR}")
     print(f"  modo debug (consola/devtools) = {debug_mode}")
+    _log("=== nuevo arranque ===")
+    _log(f"BASE_DIR={BASE_DIR}")
+    _log(f"WEB_DIR={WEB_DIR}")
+    _log(f"debug_mode={debug_mode} frozen={getattr(sys, 'frozen', False)}")
 
+    loaded_ok = threading.Event()
+
+    def _watchdog():
+        # Si la ventana nunca dispara 'loaded' en un tiempo razonable,
+        # el problema está ANTES de que la página cargue (WebView2 no
+        # termina de inicializar: antivirus, runtime corrupto/viejo, o
+        # una carpeta de datos de WebView2 bloqueada por otro proceso
+        # zombie). Si sí lo dispara pero la ventana igual se queda "No
+        # responde", el problema está en otro lado (después de cargar).
+        if loaded_ok.wait(timeout=20):
+            return
+        _log(
+            "ALERTA: pasaron 20s y la ventana nunca disparó 'loaded' "
+            "(la página nunca terminó de cargar). Esto casi siempre es "
+            "el motor WebView2 tardándose/colgándose al iniciar: revisa "
+            "antivirus, reinstala el WebView2 Runtime, o borra una "
+            "carpeta de datos de WebView2 vieja."
+        )
+
+    threading.Thread(target=_watchdog, daemon=True).start()
+
+    _log("creando Api()")
     api = Api()
+    _log("creando ventana (webview.create_window)")
     window = webview.create_window(
         "Piano Autoplayer • Tirji",
         url=os.path.join(WEB_DIR, "index.html"),
@@ -1744,9 +1786,12 @@ def main():
         on_top=True,
     )
     api.window = window
+    _log("ventana creada, registrando evento 'loaded'")
 
     def on_loaded():
+        loaded_ok.set()
         print("Piano Autoplayer: la ventana terminó de cargar (evento 'loaded').")
+        _log("evento 'loaded' disparado: la página SÍ terminó de cargar")
         # register_hotkeys instala un hook de teclado a nivel de sistema
         # (ver el comentario dentro de esa función): si eso se hace en
         # este mismo hilo (el de la ventana) y se tarda, Windows marca
@@ -1755,6 +1800,7 @@ def main():
         threading.Thread(target=register_hotkeys, args=(window,), daemon=True).start()
         sync = SheetSync(api.notifier)
         threading.Thread(target=sync.loop, daemon=True).start()
+        _log("hilos de hotkeys y sincronización lanzados")
 
     window.events.loaded += on_loaded
 
@@ -1768,8 +1814,13 @@ def main():
         # pegada en "Cargando..." para siempre aunque el programa de
         # Python sí arrancó bien (por eso las carpetas de la Tienda sí
         # se crean, pero la interfaz nunca reacciona).
+        _log("llamando webview.start(...) -- si el programa se cuelga y "
+             "esta es la ÚLTIMA línea del log, el problema está en la "
+             "inicialización del motor WebView2 mismo")
         webview.start(gui="edgechromium", debug=debug_mode, http_server=True)
+        _log("webview.start() terminó (la ventana se cerró normalmente)")
     except Exception as e:
+        _log(f"EXCEPCIÓN al iniciar webview.start(): {e}")
         _fatal_startup_error(
             "No se pudo iniciar el componente de la ventana (WebView2).\n\n"
             "Instala el 'Microsoft Edge WebView2 Runtime' (gratis, de "
