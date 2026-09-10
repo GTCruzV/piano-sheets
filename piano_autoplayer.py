@@ -1637,17 +1637,40 @@ class Api:
 
 
 def register_hotkeys(window):
+    """Registra los hotkeys globales (F8/F9/F10/F11/Esc).
+
+    IMPORTANTE: esto se llama desde un hilo aparte (ver on_loaded más
+    abajo), nunca directo desde el hilo de la ventana. keyboard.add_hotkey
+    instala un hook de teclado a nivel de sistema (SetWindowsHookEx), y en
+    ciertas PCs (antivirus/EDR agresivo, permisos, drivers) esa llamada
+    puede tardar varios segundos o quedarse esperando. Si eso pasa en el
+    mismo hilo que la ventana, Windows marca TODO el programa como "No
+    responde" aunque el resto (la interfaz web) esté bien. Al correrlo en
+    un hilo aparte, en el peor caso solo fallan los atajos de teclado, la
+    ventana sigue viva y respondiendo.
+    """
+
     def click(btn_id):
         try:
             window.evaluate_js(f"document.getElementById('{btn_id}').click()")
         except Exception:
             pass
 
-    keyboard.add_hotkey("F8", lambda: click("startBtn"))
-    keyboard.add_hotkey("F9", lambda: click("stopBtn"))
-    keyboard.add_hotkey("F10", lambda: click("ctrlStartBtn"))
-    keyboard.add_hotkey("F11", lambda: click("ctrlStopBtn"))
-    keyboard.add_hotkey("esc", lambda: (click("stopBtn"), click("ctrlStopBtn")))
+    hotkeys = (
+        ("F8", lambda: click("startBtn")),
+        ("F9", lambda: click("stopBtn")),
+        ("F10", lambda: click("ctrlStartBtn")),
+        ("F11", lambda: click("ctrlStopBtn")),
+        ("esc", lambda: (click("stopBtn"), click("ctrlStopBtn"))),
+    )
+    for key, handler in hotkeys:
+        try:
+            keyboard.add_hotkey(key, handler)
+        except Exception:
+            # Si un atajo no se pudo registrar (ej. sin permisos de
+            # administrador), seguimos con los demás en vez de dejar
+            # todo a medias.
+            pass
 
 
 def _looks_like_temp_extraction(path):
@@ -1724,7 +1747,12 @@ def main():
 
     def on_loaded():
         print("Piano Autoplayer: la ventana terminó de cargar (evento 'loaded').")
-        register_hotkeys(window)
+        # register_hotkeys instala un hook de teclado a nivel de sistema
+        # (ver el comentario dentro de esa función): si eso se hace en
+        # este mismo hilo (el de la ventana) y se tarda, Windows marca
+        # la ventana entera como "No responde". Por eso corre en un hilo
+        # aparte, igual que la sincronización de partituras.
+        threading.Thread(target=register_hotkeys, args=(window,), daemon=True).start()
         sync = SheetSync(api.notifier)
         threading.Thread(target=sync.loop, daemon=True).start()
 
